@@ -1,0 +1,9 @@
+streamlit
+lightgbm
+scikit-learn==1.6.1
+pandas
+numpy
+scipy
+joblib
+openai
+python-dotenv

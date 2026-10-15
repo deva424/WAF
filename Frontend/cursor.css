@@ -1,0 +1,62 @@
+/* Shared cursor for all ClearGate frontend pages. */
+.tech-cursor {
+  position: fixed;
+  z-index: 10000;
+  top: 0;
+  left: 0;
+  width: 38px;
+  height: 38px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(var(--cursor-x, -100px), var(--cursor-y, -100px), 0) translate(-50%, -50%);
+  transition: opacity .15s ease;
+}
+
+.tech-cursor.is-visible { opacity: 1; }
+
+.tech-cursor__ring {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 2px solid #22d3ee;
+  background: rgba(2, 8, 23, .18);
+  box-shadow: 0 0 0 2px rgba(2, 8, 23, .8), 0 0 14px rgba(34, 211, 238, .7);
+  transition: inset .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.tech-cursor__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid #083344;
+  background: #f8fafc;
+  box-shadow: 0 0 7px rgba(34, 211, 238, .8);
+  transform: translate(-50%, -50%);
+}
+
+.tech-cursor.is-hovering .tech-cursor__ring {
+  inset: 0;
+  background: rgba(103, 232, 249, .12);
+}
+
+.tech-cursor.is-pressed .tech-cursor__ring {
+  transform: scale(.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tech-cursor { display: none !important; }
+}
+
+html[data-theme="light"] .tech-cursor__ring {
+  border-color: #0e7490;
+  background: rgba(248, 252, 255, .3);
+  box-shadow: 0 0 0 2px rgba(248, 252, 255, .95), 0 0 14px rgba(14, 116, 144, .65);
+}
+
+html[data-theme="light"] .tech-cursor__dot {
+  background: #164e63;
+  border-color: #f8fafc;
+}

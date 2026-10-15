@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+.venv/
+.vscode/
+__pycache__/
+*.py[cod]
+*.sqlite3
+Frontend/assets/15681997_3840_2160_24fps.mp4

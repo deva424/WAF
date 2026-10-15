@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem('aegis-theme') || 'dark';</script>
+  <link rel="stylesheet" href="cursor.css" />
+  <script src="cursor.js" defer></script>
+  <title>ClearGate — Clear website threat protection</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Configuration for Custom Colors & Animations -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              900: '#1e3a8a',
+            },
+            accent: {
+              cyan: '#06b6d4',
+              violet: '#8b5cf6',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              amber: '#f59e0b',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'spin-slow': 'spin 12s linear infinite',
+            'float': 'float 6s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Alpine.js for State Management & Interactivity -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    /* Custom Scrollbar & Glassmorphism Effects */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-input {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .radial-glow {
+      background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15), transparent 70%);
+    }
+    .theme-toggle{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #94a3b844;border-radius:10px;background:#0b1724aa;color:#dbeafe;font:600 11px 'Inter',sans-serif;cursor:pointer}
+    .page-video{position:fixed;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;opacity:.42;filter:saturate(.72) hue-rotate(5deg) contrast(1.08)}
+    .page-video-tone{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(3,8,19,.9),rgba(4,12,24,.66) 58%,rgba(3,8,19,.52)),linear-gradient(180deg,rgba(3,8,19,.38),transparent 40%,rgba(3,8,19,.84))}
+    html[data-theme="light"] body{background:#edf4f8;color:#152a3c}
+    html[data-theme="light"] .page-video{opacity:.17;filter:saturate(.55) hue-rotate(6deg) brightness(1.18)}
+    html[data-theme="light"] .page-video-tone{background:linear-gradient(90deg,rgba(235,245,250,.9),rgba(235,245,250,.77) 58%,rgba(235,245,250,.7)),linear-gradient(180deg,rgba(255,255,255,.45),transparent 42%,rgba(230,240,246,.84))}
+    html[data-theme="light"] .glass-card{background:rgba(249,252,254,.84);border-color:#647c9230}
+    html[data-theme="light"] .radial-glow{background:radial-gradient(circle at 50% 0%,rgba(56,189,248,.16),transparent 70%)}
+    html[data-theme="light"] [class~="text-white"],html[data-theme="light"] [class~="text-slate-100"],html[data-theme="light"] [class~="text-slate-200"],html[data-theme="light"] [class~="text-slate-300"]{color:#172d40}
+    html[data-theme="light"] [class~="text-slate-400"],html[data-theme="light"] [class~="text-slate-500"]{color:#526a7e}
+    html[data-theme="light"] [class~="bg-slate-950"],html[data-theme="light"] [class~="bg-slate-900"],html[data-theme="light"] [class~="bg-slate-800/80"]{background-color:#e1edf4}
+    html[data-theme="light"] [class~="border-slate-800"],html[data-theme="light"] [class~="border-slate-800/80"]{border-color:#647c9230}
+    html[data-theme="light"] .glass-input{background:#f7fbfd;color:#152a3c}
+    html[data-theme="light"] .theme-toggle{background:#f8fcff;color:#17344b;border-color:#647c923d}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-cyan-500 selection:text-slate-900 min-h-screen flex flex-col justify-between radial-glow" 
+      x-data="appState()">
+
+  <div class="page-video-tone" aria-hidden="true"></div>
+
+  <!-- Background Animated Elements -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+    <div class="absolute top-1/2 -right-40 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+    <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+  </div>
+
+  <!-- NAVIGATION BAR -->
+  <header class="sticky top-0 z-50 glass-card border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center space-x-3 cursor-pointer">
+        <div class="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20">
+          <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <span class="text-xl font-bold tracking-tight">Clear<span class="gradient-text">Gate</span></span>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <a href="index.html" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>Home</span>
+        </a>
+        <a href="page.html" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 bg-slate-800/80 text-cyan-400">
+          <i data-lucide="radar" class="w-4 h-4"></i>
+          <span>Assess URL</span>
+        </a>
+      </nav>
+
+      <!-- Auth Controls -->
+      <div class="flex items-center space-x-3">
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch theme"><span id="theme-icon" aria-hidden="true">☼</span><span id="theme-label">Light</span></button>
+        <a href="signin.html" class="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Sign in</a>
+        <a href="signup.html" class="px-3 py-2 text-sm font-semibold rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all">Create account</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+    <!-- PAGE 1: WAF DETAILS & PROJECT ARCHITECTURE -->
+    <section x-cloak x-show="activePage === 'home'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-12">
+      
+      <!-- Hero Section -->
+      <div class="text-center space-y-6 max-w-3xl mx-auto pt-6">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
+          <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+          <span>Clear website threat protection</span>
+        </div>
+        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+          Clearer insight into <span class="gradient-text">risky web links</span>
+        </h1>
+        <p class="text-lg text-slate-400 leading-relaxed">
+          Check a web link for suspicious patterns, see why it may be risky, and get a plain-language suggestion for what to review.
+        </p>
+        <div class="flex items-center justify-center space-x-4 pt-2">
+          <a href="page.html" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-white shadow-xl shadow-cyan-500/25 hover:opacity-90 transition-all flex items-center space-x-2">
+            <span>Check a web link</span>
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </a>
+          <a href="#architecture" class="px-6 py-3 rounded-xl glass-card font-semibold text-slate-300 hover:text-white transition-colors">
+            How it works
+          </a>
+        </div>
+      </div>
+
+      <!-- Live Metric Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-l-cyan-500 space-y-2">
+          <div class="text-slate-400 text-sm font-medium">Link inspection</div>
+          <div class="text-2xl font-bold text-white">Warning signs</div>
+          <p class="text-xs text-slate-500">Checks link text and structure</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-l-violet-500 space-y-2">
+          <div class="text-slate-400 text-sm font-medium">Risk result</div>
+          <div class="text-2xl font-bold text-white">Easy-to-read rating</div>
+          <p class="text-xs text-slate-500">Know when a link needs a closer look</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-l-emerald-500 space-y-2">
+          <div class="text-slate-400 text-sm font-medium">Clear explanation</div>
+          <div class="text-2xl font-bold text-white">Why it was flagged</div>
+          <p class="text-xs text-slate-500">Understand the signals behind the result</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-l-amber-500 space-y-2">
+          <div class="text-slate-400 text-sm font-medium">Next step</div>
+          <div class="text-2xl font-bold text-white">Practical guidance</div>
+          <p class="text-xs text-slate-500">Get a suggestion for what to review</p>
+        </div>
+      </div>
+
+      <!-- WAF System Architecture Section -->
+      <div id="architecture" class="glass-card p-8 rounded-3xl space-y-8">
+        <div class="text-center space-y-2">
+          <h2 class="text-2xl font-bold">Link assessment process</h2>
+          <p class="text-slate-400 text-sm">The assessment evaluates a link, summarizes potential concerns, and provides a recommended next step.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <!-- Step 1 -->
+          <div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-lg">01</div>
+            <h3 class="text-lg font-semibold">Inspect the link</h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Examine the link for unusual terms, characters, and patterns associated with potentially harmful activity.
+            </p>
+          </div>
+          <!-- Step 2 -->
+          <div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center font-bold text-lg">02</div>
+            <h3 class="text-lg font-semibold">Estimate the risk</h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Classify the observed indicators and present an accessible risk rating.
+            </p>
+          </div>
+          <!-- Step 3 -->
+          <div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-lg">03</div>
+            <h3 class="text-lg font-semibold">Explain the result</h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Review the indicators that contributed to the result and consider the recommended action.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: MAIN MODEL URL SCANNER PAGE -->
+    <section x-show="activePage === 'scanner'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8">
+      
+      <div class="text-center space-y-3">
+        <h1 class="text-3xl font-bold tracking-tight">Assess a web link</h1>
+        <p class="text-slate-400 text-sm max-w-xl mx-auto">
+          Enter a complete web link to identify patterns that may warrant further review.
+        </p>
+      </div>
+
+      <!-- URL Input Box -->
+      <div class="max-w-3xl mx-auto">
+        <form @submit.prevent="runAnalysis()" class="glass-card p-3 rounded-2xl flex flex-col sm:flex-row items-center gap-3 shadow-2xl">
+          <div class="relative flex-grow w-full">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+              <i data-lucide="link" class="w-5 h-5"></i>
+            </div>
+            <input type="url" x-model="targetUrl" maxlength="4096" placeholder="https://example.com/login?id=1' OR '1'='1" required
+                   class="w-full pl-11 pr-4 py-3.5 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all text-sm font-mono" />
+          </div>
+          <button type="submit" :disabled="isLoading" 
+                  class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-slate-950 hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-cyan-500/20 disabled:opacity-50">
+            <template x-if="!isLoading">
+              <span class="flex items-center space-x-2">
+                <span>Assess link</span>
+                <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
+              </span>
+            </template>
+            <template x-if="isLoading">
+              <span class="flex items-center space-x-2">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                <span>Analyzing...</span>
+              </span>
+            </template>
+          </button>
+        </form>
+
+        <p x-show="analysisError" x-text="analysisError" role="alert" class="mt-3 text-sm text-rose-400"></p>
+
+        <!-- Example Payload Quick Chips -->
+        <div class="flex items-center space-x-2 mt-4 text-xs text-slate-400 overflow-x-auto pb-2">
+          <span class="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Example links:</span>
+          <button @click="setTargetUrl('https://app.com/user/profile?id=492')" class="px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700/50 whitespace-nowrap">Standard link</button>
+          <button @click="setTargetUrl('https://bank.com/transfer?acc=1001&query=SELECT * FROM users')" class="px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-amber-400 transition-colors border border-amber-500/20 whitespace-nowrap">Database command</button>
+          <button @click="setTargetUrl('https://portal.net/search?q=<script>alert(document.cookie)</script>')" class="px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-rose-400 transition-colors border border-rose-500/20 whitespace-nowrap">Browser script</button>
+        </div>
+      </div>
+
+      <!-- RESULTS DASHBOARD SECTION -->
+      <template x-if="hasResult">
+        <div class="max-w-5xl mx-auto space-y-6" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+          
+          <!-- Top Metric & Score Overview -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Risk Gauge Card -->
+            <div class="glass-card p-6 rounded-3xl flex flex-col items-center justify-center space-y-4 text-center">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Risk score · screening estimate</span>
+              
+              <div class="relative w-36 h-36 flex items-center justify-center">
+                <!-- Outer Animated Ring -->
+                <svg class="w-full h-full transform -rotate-90">
+                  <circle cx="72" cy="72" r="60" stroke="currentColor" stroke-width="12" class="text-slate-800" fill="transparent" />
+                  <circle cx="72" cy="72" r="60" stroke="currentColor" stroke-width="12" 
+                          :class="analysis.riskScore > 70 ? 'text-rose-500' : (analysis.riskScore > 30 ? 'text-amber-500' : 'text-emerald-500')"
+                          :stroke-dasharray="377"
+                          :stroke-dashoffset="377 - (377 * analysis.riskScore) / 100"
+                          stroke-linecap="round" fill="transparent" class="transition-all duration-1000 ease-out" />
+                </svg>
+                <div class="absolute flex flex-col items-center">
+                  <span class="text-3xl font-extrabold" x-text="analysis.riskScore + '/100'"></span>
+                  <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mt-1"
+                        :class="analysis.riskScore > 70 ? 'bg-rose-500/20 text-rose-400' : (analysis.riskScore > 30 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400')"
+                        x-text="analysis.riskLevel"></span>
+                </div>
+              </div>
+
+              <p class="text-xs text-slate-400" x-text="'Model confidence: ' + (analysis.confidence * 100).toFixed(2) + '%' "></p>
+            </div>
+
+            <!-- Threat Type & Classification -->
+            <div class="glass-card p-6 rounded-3xl md:col-span-2 flex flex-col justify-between space-y-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assessment summary</span>
+                  <h3 class="text-2xl font-bold mt-1 text-white" x-text="analysis.riskType || analysis.threatType"></h3>
+                </div>
+                <div class="p-3 rounded-2xl" :class="analysis.riskScore > 70 ? 'bg-rose-500/10 text-rose-400' : (analysis.riskScore > 30 ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400')">
+                  <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                </div>
+              </div>
+
+              <!-- Key Vectors Found -->
+              <div class="space-y-2">
+                <span class="text-xs text-slate-400 font-medium">Indicators contributing to this assessment:</span>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="feature in analysis.features" :key="feature">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-cyan-300 font-mono text-xs border border-slate-700" x-text="feature"></span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Recommendation Pill -->
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center space-x-3 text-xs">
+                <i data-lucide="info" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
+                <span class="text-slate-300" x-text="analysis.recommendation"></span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Plain-language result explanation -->
+          <div class="glass-card p-8 rounded-3xl space-y-6 border border-violet-500/20 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="flex items-center space-x-3 border-b border-slate-800 pb-4">
+              <div class="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white">What this result means</h3>
+                <p class="text-xs text-slate-400" x-text="analysis.explanationSource === 'xai' ? 'Explanation generated by Grok' : (analysis.explanationStatus || 'Model-only explanation · Grok unavailable')"></p>
+              </div>
+            </div>
+
+            <!-- AI Response Output -->
+            <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+              <p class="font-medium text-slate-200" x-text="analysis.llmOverview"></p>
+              
+              <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-2 font-mono text-xs">
+                <div class="text-slate-400 flex items-center justify-between">
+                  <span>Link assessed:</span>
+                  <span class="text-slate-500" x-text="targetUrl.length + ' chars'"></span>
+                </div>
+                <div class="text-rose-300 break-all" x-text="targetUrl"></div>
+              </div>
+
+              <div class="space-y-2">
+                  <h4 class="font-semibold text-slate-200 text-xs uppercase tracking-wider">Why this risk was flagged:</h4>
+                <ul class="list-disc list-inside space-y-1 text-slate-400">
+                  <template x-for="item in analysis.llmPoints" :key="item">
+                    <li x-text="item"></li>
+                  </template>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </template>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: AUTHENTICATION (SIGN IN / SIGN UP) -->
+  <div x-show="showAuthModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div @click.outside="showAuthModal = false" class="glass-card w-full max-w-md p-8 rounded-3xl space-y-6 relative border border-slate-800 shadow-2xl">
+      
+      <button @click="showAuthModal = false" class="absolute top-6 right-6 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center space-y-2">
+        <h2 class="text-2xl font-bold" x-text="authMode === 'login' ? 'Sign in to ClearGate' : 'Create a ClearGate account'"></h2>
+        <p class="text-slate-400 text-xs" x-text="authMode === 'login' ? 'Enter your account credentials to continue.' : 'Provide your details to create an account.'"></p>
+      </div>
+
+      <form @submit.prevent="handleAuth()" class="space-y-4">
+        <template x-if="authMode === 'signup'">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Full name</label>
+            <input type="text" x-model="authForm.name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl glass-input text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+          </div>
+        </template>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Email Address</label>
+          <input type="email" x-model="authForm.email" required placeholder="admin@company.com" class="w-full px-4 py-3 rounded-xl glass-input text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Password</label>
+          <input type="password" x-model="authForm.password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl glass-input text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-slate-950 hover:opacity-90 transition-all text-sm shadow-lg shadow-cyan-500/20">
+          <span x-text="authMode === 'login' ? 'Sign In' : 'Register Account'"></span>
+        </button>
+      </form>
+
+      <div class="text-center text-xs text-slate-400">
+        <template x-if="authMode === 'login'">
+          <span>Do not have an account? <button @click="authMode = 'signup'" class="text-cyan-400 hover:underline font-semibold">Create account</button></span>
+        </template>
+        <template x-if="authMode === 'signup'">
+          <span>Already have an account? <button @click="authMode = 'login'" class="text-cyan-400 hover:underline font-semibold">Sign in</button></span>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="relative z-10 border-t border-slate-800/80 glass-card py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="shield" class="w-4 h-4 text-cyan-400"></i>
+        <span>ClearGate · Website threat protection</span>
+      </div>
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Footer navigation">
+        <a class="hover:text-cyan-300 transition-colors" href="index.html">Home</a>
+        <a class="hover:text-cyan-300 transition-colors" href="page.html">Assess URL</a>
+        <a class="hover:text-cyan-300 transition-colors" href="signin.html">Sign in</a>
+        <a class="hover:text-cyan-300 transition-colors" href="signup.html">Create account</a>
+        <a class="hover:text-cyan-300 transition-colors" href="mailto:devamani1220@gmail.com">Contact · devamani1220@gmail.com</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- ALPINE.JS APPLICATION STATE & INTERACTIVITY -->
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const syncTheme = () => {
+      const dark = document.documentElement.dataset.theme !== 'light';
+      document.getElementById('theme-label').textContent = dark ? 'Light' : 'Dark';
+      document.getElementById('theme-icon').textContent = dark ? '☼' : '☾';
+      themeToggle.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
+    };
+    syncTheme();
+    themeToggle.addEventListener('click', () => {
+      document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('aegis-theme', document.documentElement.dataset.theme);
+      syncTheme();
+    });
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('appState', () => ({
+        activePage: 'scanner',
+        isLoggedIn: false,
+        showAuthModal: false,
+        authMode: 'login', // 'login' or 'signup'
+        
+        user: { name: 'Admin User', email: '' },
+        authForm: { name: '', email: '', password: '' },
+
+        targetUrl: '',
+        isLoading: false,
+        hasResult: false,
+        analysisError: '',
+
+        analysis: {
+          confidence: 0,
+          riskScore: 0,
+          riskLevel: 'Clean',
+          threatType: 'None Identified',
+          features: [],
+          recommendation: '',
+          llmOverview: '',
+          llmPoints: []
+        },
+
+        init() {
+          this.$nextTick(() => { lucide.createIcons(); });
+        },
+
+        openAuthModal(mode) {
+          this.authMode = mode;
+          this.showAuthModal = true;
+        },
+
+        handleAuth() {
+          this.isLoggedIn = true;
+          this.user.name = this.authForm.name || 'Security Specialist';
+          this.user.email = this.authForm.email;
+          this.showAuthModal = false;
+          this.activePage = 'scanner';
+          this.$nextTick(() => { lucide.createIcons(); });
+        },
+
+        logout() {
+          this.isLoggedIn = false;
+          this.user = { name: '', email: '' };
+        },
+
+        setTargetUrl(url) {
+          this.targetUrl = url;
+          this.runAnalysis();
+        },
+
+        async runAnalysis() {
+          if (!this.targetUrl.trim()) return;
+          this.isLoading = true;
+          this.hasResult = false;
+          this.analysisError = '';
+          try {
+            const response = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: this.targetUrl.trim() })
+            });
+            if (response.status === 401) {
+              window.location.href = 'signin.html';
+              return;
+            }
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Unable to analyze this URL.');
+            if (
+              !result.explanationSource ||
+              !result.riskType ||
+              typeof result.confidence !== 'number' ||
+              !Number.isFinite(result.confidence)
+            ) {
+              throw new Error('This scanner server is outdated. Stop it and restart with: py auth_server.py');
+            }
+            this.analysis = result;
+            this.isLoading = false;
+            this.hasResult = true;
+            this.$nextTick(() => { lucide.createIcons(); });
+          } catch (error) {
+            this.analysisError = error instanceof TypeError
+              ? 'Cannot reach the scanner service. Start it with: py auth_server.py'
+              : error.message;
+            this.isLoading = false;
+          }
+        }
+      }));
+    });
+  </script>
+</body>
+</html>

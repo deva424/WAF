@@ -99,33 +99,69 @@ The server creates `aegis_auth.sqlite3` in the project directory on startup.
 Keep this database on persistent storage if you need to preserve user accounts
 between restarts.
 
-## Deployment notes
+## Deploy to Render
 
-`auth_server.py` uses Python's built-in `http.server`; it is intended for local
-use and development, not as a hardened public production server. Do not expose
-it directly to the internet.
+The application can run as a Render Web Service. It reads Render's `PORT`
+environment variable, accepts an `AEGIS_HOST` setting, and supports a
+configurable database path through `AEGIS_DB_PATH`.
 
-For a real deployment:
+1. Push the project to GitHub and sign in to the [Render Dashboard](https://dashboard.render.com/).
+2. Select **New → Web Service**, connect GitHub, and choose this repository and
+   the `main` branch.
+3. Set the service's root directory to the repository root and choose the
+   **Python** runtime.
+4. Use these commands:
 
-1. Use a maintained production application server and a supported hosting
-   platform; this project does not currently provide a production server
-   configuration or deployment workflow.
-2. Terminate HTTPS at a properly configured reverse proxy. If using the
-   current handler behind a proxy, the proxy must overwrite
-   `X-Forwarded-Proto` with the actual external scheme so secure session cookies
-   and same-origin checks work correctly. Do not trust this header from
-   arbitrary clients.
-3. Store `GROQ_API_KEY` in the hosting provider's secret manager or protected
-   environment configuration, not in source control.
-4. Provide persistent, access-controlled storage for the SQLite database and
-   ensure it is included in secure backups.
-5. Review authentication, rate limiting, logging, session policy, and
-   operational monitoring before accepting public traffic.
-6. Do not expose detailed server errors or secrets in logs. Model files loaded
-   with `joblib` must be treated as trusted application artifacts.
+   ```text
+   Build: pip install -r requirements.txt
+   Start: python -m auth_server
+   ```
 
-The GitHub Pages static hosting service alone cannot run this Python backend;
-the frontend and API must be served by a host that can run the application.
+5. Add these environment variables under the service's **Environment** settings:
+
+   | Name | Value |
+   | --- | --- |
+   | `PYTHON_VERSION` | `3.12.8` |
+   | `AEGIS_HOST` | `0.0.0.0` |
+   | `GROQ_API_KEY` | Your Groq API key (optional) |
+   | `GROQ_MODEL` | `openai/gpt-oss-20b` |
+
+   Render sets `PORT` automatically; the server uses it in preference to
+   `AEGIS_PORT`. Do not add the API key to GitHub or frontend code.
+
+6. Click **Create Web Service**, wait for the first deployment to finish, and
+   open the `onrender.com` URL. Test registration, sign-in, and URL assessment.
+   Render can deploy later changes automatically when they are pushed to the
+   connected branch.
+
+### Persisting accounts on Render
+
+The default SQLite database lives beside the application code. Render's
+filesystem is ephemeral unless a persistent disk is attached, so accounts
+stored at the default path may be lost during restarts or redeployments.
+
+For persistent accounts, attach a Render disk to the web service with mount
+path `/var/data`, then add this service environment variable:
+
+```text
+AEGIS_DB_PATH=/var/data/aegis_auth.sqlite3
+```
+
+The application creates the database directory if it does not exist. Render
+persistent disks require a paid web service plan. Without a disk, use the
+deployment only for a temporary demo and expect locally stored accounts to be
+lost.
+
+Render terminates HTTPS before proxying requests to the service. The app uses
+`X-Forwarded-Proto` to set secure session cookies and validate request origins;
+do not run this server directly on the public internet outside a trusted,
+correctly configured hosting proxy.
+
+This project currently uses Python's built-in `http.server`, which is suitable
+for a small demo but is not a hardened production application server. Before
+handling real users, review the authentication and session design, add
+appropriate rate limiting and monitoring, and consider migrating to a
+production web framework and database.
 
 ## Troubleshooting
 

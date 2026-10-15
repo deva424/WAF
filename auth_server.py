@@ -23,12 +23,12 @@ from openai import OpenAI
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "Frontend"
 MODEL_DIR = ROOT / "models"
-DB_PATH = ROOT / "aegis_auth.sqlite3"
 COOKIE_NAME = "aegis_session"
 PBKDF2_ROUNDS = 310_000
 SESSION_SECONDS = 60 * 60 * 24 * 14
 MODEL_BUNDLE = None
 load_dotenv(ROOT / ".env")
+DB_PATH = Path(os.getenv("AEGIS_DB_PATH", str(ROOT / "aegis_auth.sqlite3"))).expanduser()
 
 
 def load_model_bundle():
@@ -213,6 +213,7 @@ def connect_db():
 
 
 def initialize_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect_db() as db:
         db.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
@@ -405,7 +406,7 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     initialize_db()
     host = os.getenv("AEGIS_HOST", "127.0.0.1")
-    port = int(os.getenv("AEGIS_PORT", "8000"))
+    port = int(os.getenv("PORT", os.getenv("AEGIS_PORT", "8000")))
     print(f"ClearGate frontend and authentication service: http://{host}:{port}")
     print("Use Ctrl+C to stop the server.")
     ThreadingHTTPServer((host, port), Handler).serve_forever()
